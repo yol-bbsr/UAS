@@ -20,7 +20,7 @@ webpackEmptyAsyncContext.id = "../../../../../src/$$_lazy_route_resource lazy re
 /***/ "../../../../../src/app/activity-graph/activity-graph.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<app-user-configuration (simulateEvent)=\"onSimulation($event)\"></app-user-configuration>\r\n<mat-card>\r\n  <div #graphcontainer>\r\n    <p></p>\r\n  </div>\r\n</mat-card>"
+module.exports = "<app-user-configuration (simulateEvent)=\"onSimulation($event)\"></app-user-configuration>\r\n<mat-card>\r\n  <mat-card-title>Transactions Wise Activity</mat-card-title>\r\n  <div #graphcontainer>\r\n    <p></p>\r\n  </div>\r\n  <mat-card-footer *ngIf=\"displayStep\"><hr/></mat-card-footer>\r\n</mat-card>\r\n<mat-card>\r\n  <mat-card-title *ngIf=\"displayStep\">Steps Wise Activity</mat-card-title>\r\n  <div #stepgraphcontainer>\r\n    <p></p>\r\n  </div>\r\n</mat-card>"
 
 /***/ }),
 
@@ -32,7 +32,7 @@ exports = module.exports = __webpack_require__("../../../../css-loader/lib/css-b
 
 
 // module
-exports.push([module.i, "", ""]);
+exports.push([module.i, ".mat-card-title {\n  text-align: center; }\n", ""]);
 
 // exports
 
@@ -63,8 +63,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 
 
 var ActivityGraphComponent = (function () {
-    function ActivityGraphComponent(renderrer, element, d3Service) {
+    function ActivityGraphComponent(renderrer, d3Service) {
         this.renderrer = renderrer;
+        this.displayStep = false;
         this.d3 = d3Service.getD3();
     }
     ActivityGraphComponent.prototype.ngOnInit = function () {
@@ -72,41 +73,51 @@ var ActivityGraphComponent = (function () {
         if (this.el !== null) {
             d3ParentElement = this.d3.select(this.el.nativeElement);
             this.chartContainer = d3ParentElement.select('p');
-            this.chartContainer.attr('width', '100%').attr('height', 400);
-            this.chartRef = new __WEBPACK_IMPORTED_MODULE_2__activity_graph_functions__["b" /* ChartProperties */](this.d3, this.chartContainer, this.el.nativeElement.offsetWidth);
+            this.chartRef = new __WEBPACK_IMPORTED_MODULE_2__activity_graph_functions__["b" /* ChartProperties */](this.d3, this.chartContainer, this.el.nativeElement.offsetWidth, false);
+        }
+        if (this.step !== undefined) {
+            d3ParentElement = this.d3.select(this.step.nativeElement);
+            this.stepChartContainer = d3ParentElement.select('p');
+            this.stepChartRef = new __WEBPACK_IMPORTED_MODULE_2__activity_graph_functions__["b" /* ChartProperties */](this.d3, this.stepChartContainer, this.step.nativeElement.offsetWidth, false);
         }
     };
     ActivityGraphComponent.prototype.onSimulation = function ($event) {
         this.clearChart();
-        this.chartContainer.datum($event.activites).call(__WEBPACK_IMPORTED_MODULE_2__activity_graph_functions__["a" /* ActivityChart */].drawChart, this.chartRef);
-        this.chartContainer.append('rect')
-            .attr('x', 0)
-            .attr('y', 0)
-            .attr('height', '100%')
-            .attr('width', '100%')
-            .style('stroke', 'black')
-            .style('fill', 'none')
-            .style('stroke-width', '5px');
+        this.chartContainer.attr('width', '100%');
+        this.chartContainer.datum($event.data.activites).call(__WEBPACK_IMPORTED_MODULE_2__activity_graph_functions__["a" /* ActivityChart */].drawChart, this.chartRef);
+        if ($event.settings.isSimulateSteps) {
+            this.displayStep = true;
+            this.stepChartContainer.attr('width', '100%');
+            this.stepChartContainer.datum($event.data.setpActivities).call(__WEBPACK_IMPORTED_MODULE_2__activity_graph_functions__["a" /* ActivityChart */].drawChart, this.stepChartRef);
+        }
     };
     ActivityGraphComponent.prototype.ngOnDestroy = function () {
         this.clearChart();
     };
     ActivityGraphComponent.prototype.clearChart = function () {
+        this.displayStep = false;
         if (this.chartContainer.empty && !this.chartContainer.empty()) {
             this.chartContainer.selectAll('*').remove();
+        }
+        if (this.stepChartContainer !== undefined && this.stepChartContainer.empty && !this.stepChartContainer.empty()) {
+            this.stepChartContainer.selectAll('*').remove();
         }
     };
     __decorate([
         Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewChild"])('graphcontainer'),
         __metadata("design:type", __WEBPACK_IMPORTED_MODULE_0__angular_core__["ElementRef"])
     ], ActivityGraphComponent.prototype, "el", void 0);
+    __decorate([
+        Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewChild"])('stepgraphcontainer'),
+        __metadata("design:type", __WEBPACK_IMPORTED_MODULE_0__angular_core__["ElementRef"])
+    ], ActivityGraphComponent.prototype, "step", void 0);
     ActivityGraphComponent = __decorate([
         Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
             selector: 'app-activity-graph',
             template: __webpack_require__("../../../../../src/app/activity-graph/activity-graph.component.html"),
             styles: [__webpack_require__("../../../../../src/app/activity-graph/activity-graph.component.scss")]
         }),
-        __metadata("design:paramtypes", [__WEBPACK_IMPORTED_MODULE_0__angular_core__["Renderer2"], __WEBPACK_IMPORTED_MODULE_0__angular_core__["ElementRef"], __WEBPACK_IMPORTED_MODULE_1_d3_ng2_service__["a" /* D3Service */]])
+        __metadata("design:paramtypes", [__WEBPACK_IMPORTED_MODULE_0__angular_core__["Renderer2"], __WEBPACK_IMPORTED_MODULE_1_d3_ng2_service__["a" /* D3Service */]])
     ], ActivityGraphComponent);
     return ActivityGraphComponent;
 }());
@@ -358,6 +369,15 @@ var ActivityChart = (function () {
                 .attr('x2', function (d) { return xScale(d); })
                 .attr('y1', 0)
                 .attr('y2', ChartProperties.dataHeight * dataset.length + ChartProperties.lineSpacing * dataset.length - 1 + ChartProperties.paddingBottom);
+            // create horizontal grid
+            svg.select('#g_axis').selectAll('line.horz_grid').data(dataset)
+                .enter()
+                .append('line')
+                .attr('class', 'horz_grid')
+                .attr('x1', 0)
+                .attr('x2', settings.width)
+                .attr('y1', function (d, i) { return ((ChartProperties.lineSpacing + ChartProperties.dataHeight) * i) + ChartProperties.lineSpacing + ChartProperties.dataHeight / 2; })
+                .attr('y2', function (d, i) { return ((ChartProperties.lineSpacing + ChartProperties.dataHeight) * i) + ChartProperties.lineSpacing + ChartProperties.dataHeight / 2; });
             // create x axis
             svg.select('#g_axis').append('g')
                 .attr('class', 'axis')
@@ -380,18 +400,22 @@ var ActivityChart = (function () {
                 .attr('height', ChartProperties.dataHeight)
                 .attr('class', function (d) {
                 if (customCategories) {
-                    var series = dataset.find(function (serie) { return serie.disp_data.indexOf(d) >= 0; });
-                    if (series && series.categories) {
-                        settings.d3ServiceRef.select(this).attr('fill', series.categories[d[1]].color);
-                        return '';
+                    if (d[1] === 'Pacing') {
+                        return 'pacing';
+                    }
+                    else if (d[1] === 'Think Time') {
+                        return 'thinktime';
+                    }
+                    else {
+                        return 'transaction';
                     }
                 }
                 else {
                     if (d[1] === 1) {
-                        return 'rect_has_data';
+                        return 'transaction';
                     }
                     else {
-                        return 'rect_has_no_data';
+                        return 'pacing';
                     }
                 }
             })
@@ -403,16 +427,16 @@ var ActivityChart = (function () {
                     var output;
                     if (customCategories) {
                         // custom categories: display category name
-                        output = '&nbsp;' + d[1] + '&nbsp;';
+                        output = '&nbsp;' + d[1] + '&nbsp;:&nbsp;';
                     }
                     else {
                         if (d[1] === 1) {
                             // transaction icon
-                            output = '<i class="material-icons tooltip_has_data">directions_run</i>';
+                            output = '<i class="material-icons tooltip_transaction">directions_run</i>';
                         }
                         else {
                             // pacing icon
-                            output = '<i class="material-icons tooltip_has_no_data">airline_seat_individual_suite</i>';
+                            output = '<i class="material-icons tooltip_pacing">airline_seat_individual_suite</i>';
                         }
                     }
                     if (isDateOnlyFormat) {
@@ -478,7 +502,7 @@ var ActivityChart = (function () {
                     .attr('y', ChartProperties.paddingTopHeading)
                     .attr('height', 15)
                     .attr('width', 15)
-                    .attr('class', 'rect_has_data');
+                    .attr('class', 'transaction');
                 legend.append('text')
                     .attr('x', settings.width + ChartProperties.margin.right - 150 + 20)
                     .attr('y', ChartProperties.paddingTopHeading + 8.5)
@@ -489,7 +513,7 @@ var ActivityChart = (function () {
                     .attr('y', ChartProperties.paddingTopHeading + 17)
                     .attr('height', 15)
                     .attr('width', 15)
-                    .attr('class', 'rect_has_no_data');
+                    .attr('class', 'pacing');
                 legend.append('text')
                     .attr('x', settings.width + ChartProperties.margin.right - 150 + 20)
                     .attr('y', ChartProperties.paddingTopHeading + 8.5 + 15 + 2)
@@ -505,10 +529,89 @@ var ActivityChart = (function () {
 
 /***/ }),
 
+/***/ "../../../../../src/app/activity-graph/graph-settings/graph-settings.component.html":
+/***/ (function(module, exports) {
+
+module.exports = "<div>\n  <h2 mat-dialog-title class=\"dialog-title\">\n    <i class=\"material-icons\">settings</i> Setting </h2>\n  <hr>\n  <mat-dialog-content>\n    <section class=\"dialog-section\" fxLayout=\"column\" fxLayoutAlign=\"start start\">\n      <mat-slide-toggle class=\"dialog-margin\" color=\"primary\" [(ngModel)]=\"settings.isOpenConfigPanel\">\n        Always Open Configuration Section\n      </mat-slide-toggle>\n      <p class=\"info\">This setting controls the state of confuguration section.</p>\n    </section>\n    <section class=\"dialog-section\" fxLayout=\"column\" fxLayoutAlign=\"start start\">\n      <mat-slide-toggle class=\"dialog-margin\" color=\"warn\" [(ngModel)]=\"settings.isSimulateSteps\">\n        Simulate Steps\n      </mat-slide-toggle>\n      <p class=\"info warn\">\n        This setting controls the simulation of steps.<br/>\n        [Caution]: This is a resource-intensive task, so don't switch on unnecessarily.\n      </p>\n    </section>\n    <p class=\"info\">\n      Updated settings will be taken effect after clicking on simulation button.<br/>\n      [NOTE]: All these settings are for the current session only!\n    </p>\n  </mat-dialog-content>\n  <hr>\n  <mat-dialog-actions fxLayout=\"row\" fxLayoutAlign=\"space-around center\">\n    <span fxFlex></span>\n    <button mat-raised-button color=\"primary\" (click)=\"onCloseConfirm()\">CONFIRM</button>\n    <button mat-raised-button color=\"warn\" (click)=\"onCloseCancel()\">CANCEL</button>\n  </mat-dialog-actions>\n</div>"
+
+/***/ }),
+
+/***/ "../../../../../src/app/activity-graph/graph-settings/graph-settings.component.scss":
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__("../../../../css-loader/lib/css-base.js")(false);
+// imports
+
+
+// module
+exports.push([module.i, ".dialog-title {\n  font-size: 30px; }\n\n.dialog-section {\n  display: -webkit-box;\n  display: -ms-flexbox;\n  display: flex;\n  -ms-flex-line-pack: center;\n      align-content: center;\n  -webkit-box-align: center;\n      -ms-flex-align: center;\n          align-items: center;\n  height: 100px; }\n  .dialog-section .warn {\n    color: #deb887; }\n\n.dialog-margin {\n  margin: 10px 10px 0 10px; }\n\n.info {\n  margin-top: 0px;\n  font-size: 12px;\n  color: darkgray; }\n", ""]);
+
+// exports
+
+
+/*** EXPORTS FROM exports-loader ***/
+module.exports = module.exports.toString();
+
+/***/ }),
+
+/***/ "../../../../../src/app/activity-graph/graph-settings/graph-settings.component.ts":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return GraphSettingsComponent; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/esm5/core.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_material__ = __webpack_require__("../../../material/esm5/material.es5.js");
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+
+
+var GraphSettingsComponent = (function () {
+    function GraphSettingsComponent(thisDialogRef, settings) {
+        this.thisDialogRef = thisDialogRef;
+        this.settings = settings;
+    }
+    GraphSettingsComponent.prototype.ngOnInit = function () {
+        this.originalSettings = { isOpenConfigPanel: this.settings.isOpenConfigPanel, isSimulateSteps: this.settings.isSimulateSteps };
+    };
+    GraphSettingsComponent.prototype.ngOnDestroy = function () {
+        this.originalSettings = null;
+    };
+    GraphSettingsComponent.prototype.onCloseConfirm = function () {
+        this.thisDialogRef.close(this.settings);
+    };
+    GraphSettingsComponent.prototype.onCloseCancel = function () {
+        this.thisDialogRef.close(this.originalSettings);
+    };
+    GraphSettingsComponent = __decorate([
+        Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'app-graph-settings',
+            template: __webpack_require__("../../../../../src/app/activity-graph/graph-settings/graph-settings.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/activity-graph/graph-settings/graph-settings.component.scss")]
+        }),
+        __param(1, Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Inject"])(__WEBPACK_IMPORTED_MODULE_1__angular_material__["a" /* MAT_DIALOG_DATA */])),
+        __metadata("design:paramtypes", [__WEBPACK_IMPORTED_MODULE_1__angular_material__["k" /* MatDialogRef */], Object])
+    ], GraphSettingsComponent);
+    return GraphSettingsComponent;
+}());
+
+
+
+/***/ }),
+
 /***/ "../../../../../src/app/activity-graph/user-configuration/user-configuration.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<mat-accordion>\r\n  <mat-expansion-panel [expanded]=\"panelOpenState === true\" (opened)=\"panelOpenState = true\">\r\n    <mat-expansion-panel-header matTooltip=\"Expand to modify the configuration!\">\r\n      <mat-panel-title class=\"user-config-header\">\r\n        <i class=\"material-icons\">perm_data_setting</i>\r\n        <span class=\"text\">Thread Groups</span>\r\n      </mat-panel-title>\r\n    </mat-expansion-panel-header>\r\n    <div class=\"mat-elevation-z1\">\r\n      <mat-table #table [dataSource]=\"dataSource\">\r\n        <ng-container matColumnDef=\"select\">\r\n          <mat-header-cell *matHeaderCellDef>\r\n            <mat-checkbox (change)=\"$event ? masterToggle() : null\" [checked]=\"selection.hasValue() && isAllSelected()\" [indeterminate]=\"selection.hasValue() && !isAllSelected()\">\r\n            </mat-checkbox>\r\n          </mat-header-cell>\r\n          <mat-cell *matCellDef=\"let row\">\r\n            <mat-checkbox (click)=\"$event.stopPropagation()\" (change)=\"$event ? selection.toggle(row) : null\" [checked]=\"selection.isSelected(row)\">\r\n            </mat-checkbox>\r\n          </mat-cell>\r\n        </ng-container>\r\n        <ng-container matColumnDef=\"THREADS\">\r\n          <mat-header-cell *matHeaderCellDef> # of Threads (users) </mat-header-cell>\r\n          <mat-cell *matCellDef=\"let element\">\r\n            <mat-form-field>\r\n              <input type=\"number\" matInput [(ngModel)]=\"element.threads\">\r\n            </mat-form-field>\r\n          </mat-cell>\r\n        </ng-container>\r\n        <ng-container matColumnDef=\"DELAY\">\r\n          <mat-header-cell *matHeaderCellDef> startup Delay (sec) </mat-header-cell>\r\n          <mat-cell *matCellDef=\"let element\">\r\n            <mat-form-field>\r\n              <input type=\"number\" min=\"0\" matInput [(ngModel)]=\"element.delay\">\r\n              <span matSuffix>sec</span>\r\n            </mat-form-field>\r\n          </mat-cell>\r\n        </ng-container>\r\n        <ng-container matColumnDef=\"START\">\r\n          <mat-header-cell *matHeaderCellDef> Ramp-Up (sec) </mat-header-cell>\r\n          <mat-cell *matCellDef=\"let element\">\r\n            <mat-form-field>\r\n              <input type=\"number\" min=\"0\" matInput [(ngModel)]=\"element.startup\">\r\n              <span matSuffix>sec</span>\r\n            </mat-form-field>\r\n          </mat-cell>\r\n        </ng-container>\r\n        <ng-container matColumnDef=\"HOLD\">\r\n          <mat-header-cell *matHeaderCellDef> Durarion (sec) </mat-header-cell>\r\n          <mat-cell *matCellDef=\"let element\">\r\n            <mat-form-field>\r\n              <input type=\"number\" min=\"0\" matInput [(ngModel)]=\"element.hold\">\r\n              <span matSuffix>sec</span>\r\n            </mat-form-field>\r\n          </mat-cell>\r\n        </ng-container>\r\n        <ng-container matColumnDef=\"SHUTDOWN\">\r\n          <mat-header-cell *matHeaderCellDef> Ramp-Down (sec) </mat-header-cell>\r\n          <mat-cell *matCellDef=\"let element\">\r\n            <mat-form-field>\r\n              <input type=\"number\" min=\"0\" matInput [(ngModel)]=\"element.shutdown\">\r\n              <span matSuffix>sec</span>\r\n            </mat-form-field>\r\n          </mat-cell>\r\n        </ng-container>\r\n        <ng-container matColumnDef=\"EXPAND\">\r\n          <mat-header-cell *matHeaderCellDef> &nbsp; </mat-header-cell>\r\n          <mat-cell *matCellDef=\"let element\">\r\n            <button mat-icon-button title=\"expand\">\r\n              <mat-icon title=\"expand\" class=\"expand\">keyboard_arrow_down</mat-icon>\r\n            </button>\r\n          </mat-cell>\r\n        </ng-container>\r\n        <mat-header-row *matHeaderRowDef=\"displayedColumns\"></mat-header-row>\r\n        <mat-row *matRowDef=\"let row; columns: displayedColumns;\" matRipple class=\"thread-group-row\" [cdkDetailRow]=\"row\" [cdkDetailRowTpl]=\"tpl\"></mat-row>\r\n      </mat-table>\r\n    </div>\r\n\r\n    <ng-template #tpl let-element>\r\n      <div class=\"scenario-container\" [@detailExpand] fxLayout=\"row\" fxLayoutGap=\"30px\" fxLayout.xs=\"column\" fxLayoutGap.xs=\"0px\">\r\n        <mat-form-field class=\"scenario-name\">\r\n          <input type=\"text\" placeholder=\"Scenaio Name\" matInput [(ngModel)]=\"element.scenario.name\">\r\n        </mat-form-field>\r\n        <mat-form-field class=\"pacing\">\r\n          <input type=\"number\" min=\"0\" placeholder=\"Pacing Time\" matInput [(ngModel)]=\"element.scenario.pacing\">\r\n          <span matSuffix>sec</span>\r\n        </mat-form-field>\r\n      </div>\r\n      <div class=\"mat-row steps\" [@detailExpand] fxLayout=\"column\" fxLayoutGap=\"20px\" [dragula]='\"scenarios\"' [dragulaModel]='element.scenario.steps'>\r\n        <div *ngFor=\"let step of element.scenario.steps; let i = index;\" class=\"step-container\" fxLayout=\"row\" fxLayoutGap=\"10px\"\r\n          fxLayout.xs=\"column\" fxLayoutGap.xs=\"0px\">\r\n          <div fxFlex=\"90\">\r\n            <div class=\"step-from\" fxLayout=\"row\" fxLayoutGap=\"10px\" fxLayoutAlign=\"space-around center\" fxLayoutWrap>\r\n              <mat-form-field class=\"step-name\">\r\n                <input type=\"text\" placeholder=\"Step Name\" matInput [(ngModel)]=\"step.name\">\r\n              </mat-form-field>\r\n              <mat-form-field class=\"step-rt\">\r\n                <input type=\"number\" min=\"0\" placeholder=\"Response Time\" matInput [(ngModel)]=\"step.responseTime\">\r\n                <span matSuffix>sec</span>\r\n              </mat-form-field>\r\n              <mat-form-field class=\"step-tt\">\r\n                <input type=\"number\" min=\"0\" placeholder=\"Think Time\" matInput [(ngModel)]=\"step.thinkTime\">\r\n                <span matSuffix>sec</span>\r\n              </mat-form-field>\r\n            </div>\r\n          </div>\r\n          <div fxFlex=\"10\" fxLayout=\"column\" fxLayoutGap=\"0px\" fxLayoutAlign=\"space-between end\">\r\n            <button mat-raised-button color=\"primary\" (click)=\"onAddStep(element, i)\">\r\n              <mat-icon>add</mat-icon>\r\n            </button>\r\n            <span fxFlex=\"1\"></span>\r\n            <button mat-raised-button color=\"warn\" (click)=\"onRemoveStep(element, i)\">\r\n              <mat-icon>remove</mat-icon>\r\n            </button>\r\n          </div>\r\n        </div>\r\n      </div>\r\n    </ng-template>\r\n\r\n    <mat-action-row fxLayout=\"row\" fxLayoutAlign=\"end center\">\r\n      <button mat-raised-button color=\"primary\" (click)=\"onAddScenario()\">\r\n        <mat-icon>playlist_add</mat-icon> Add Scenario</button>\r\n      <span fxFlex=\"1\"></span>\r\n      <button mat-raised-button color=\"warn\" (click)=\"onDeleteScenario()\">\r\n        <mat-icon>delete</mat-icon> Remove Scenario</button>\r\n    </mat-action-row>\r\n  </mat-expansion-panel>\r\n\r\n</mat-accordion>\r\n<mat-toolbar>\r\n  <mat-toolbar-row fxLayout=\"row\" fxLayoutAlign=\"end center\">\r\n    <mat-chip-list class=\"user-config-desc\">\r\n      <mat-chip color=\"primary\" selected=\"true\" matTooltip=\"Total Virtual Users\">\r\n        <i class=\"material-icons\">people</i> {{totalvUsers}}</mat-chip>\r\n      <mat-chip color=\"primary\" selected=\"true\" matTooltip=\"Total Duration\">\r\n        <i class=\"material-icons\">schedule</i> {{exeDuration}}</mat-chip>\r\n      <mat-chip color=\"primary\" selected=\"true\" matTooltip=\"Total Completed Iterations\">\r\n        <i class=\"material-icons\">repeat</i> {{iteration}}</mat-chip>\r\n    </mat-chip-list>\r\n    <span fxFlex></span>\r\n    <button mat-raised-button color=\"primary\" (click)=\"onSimulate()\">\r\n      <mat-icon>playlist_play</mat-icon> Simulate</button>\r\n  </mat-toolbar-row>\r\n</mat-toolbar>"
+module.exports = "<mat-accordion>\r\n  <mat-expansion-panel [expanded]=\"panelOpenState === true\" (opened)=\"panelOpenState = true\">\r\n    <mat-expansion-panel-header matTooltip=\"Expand to modify the configuration!\">\r\n      <mat-panel-title class=\"user-config-header\">\r\n        <i class=\"material-icons\">perm_data_setting</i>\r\n        <span class=\"text\">Thread Groups</span>\r\n      </mat-panel-title>\r\n    </mat-expansion-panel-header>\r\n    <div class=\"mat-elevation-z1\">\r\n      <mat-table #table [dataSource]=\"dataSource\">\r\n        <ng-container matColumnDef=\"select\">\r\n          <mat-header-cell *matHeaderCellDef>\r\n            <mat-checkbox (change)=\"$event ? masterToggle() : null\" [checked]=\"selection.hasValue() && isAllSelected()\" [indeterminate]=\"selection.hasValue() && !isAllSelected()\">\r\n            </mat-checkbox>\r\n          </mat-header-cell>\r\n          <mat-cell *matCellDef=\"let row\">\r\n            <mat-checkbox (click)=\"$event.stopPropagation()\" (change)=\"$event ? selection.toggle(row) : null\" [checked]=\"selection.isSelected(row)\">\r\n            </mat-checkbox>\r\n          </mat-cell>\r\n        </ng-container>\r\n        <ng-container matColumnDef=\"THREADS\">\r\n          <mat-header-cell *matHeaderCellDef> # of Threads (users) </mat-header-cell>\r\n          <mat-cell *matCellDef=\"let element\">\r\n            <mat-form-field>\r\n              <input type=\"number\" matInput [(ngModel)]=\"element.threads\">\r\n            </mat-form-field>\r\n          </mat-cell>\r\n        </ng-container>\r\n        <ng-container matColumnDef=\"DELAY\">\r\n          <mat-header-cell *matHeaderCellDef> startup Delay (sec) </mat-header-cell>\r\n          <mat-cell *matCellDef=\"let element\">\r\n            <mat-form-field>\r\n              <input type=\"number\" min=\"0\" matInput [(ngModel)]=\"element.delay\">\r\n              <span matSuffix>sec</span>\r\n            </mat-form-field>\r\n          </mat-cell>\r\n        </ng-container>\r\n        <ng-container matColumnDef=\"START\">\r\n          <mat-header-cell *matHeaderCellDef> Ramp-Up (sec) </mat-header-cell>\r\n          <mat-cell *matCellDef=\"let element\">\r\n            <mat-form-field>\r\n              <input type=\"number\" min=\"0\" matInput [(ngModel)]=\"element.startup\">\r\n              <span matSuffix>sec</span>\r\n            </mat-form-field>\r\n          </mat-cell>\r\n        </ng-container>\r\n        <ng-container matColumnDef=\"HOLD\">\r\n          <mat-header-cell *matHeaderCellDef> Durarion (sec) </mat-header-cell>\r\n          <mat-cell *matCellDef=\"let element\">\r\n            <mat-form-field>\r\n              <input type=\"number\" min=\"0\" matInput [(ngModel)]=\"element.hold\">\r\n              <span matSuffix>sec</span>\r\n            </mat-form-field>\r\n          </mat-cell>\r\n        </ng-container>\r\n        <ng-container matColumnDef=\"SHUTDOWN\">\r\n          <mat-header-cell *matHeaderCellDef> Ramp-Down (sec) </mat-header-cell>\r\n          <mat-cell *matCellDef=\"let element\">\r\n            <mat-form-field>\r\n              <input type=\"number\" min=\"0\" matInput [(ngModel)]=\"element.shutdown\">\r\n              <span matSuffix>sec</span>\r\n            </mat-form-field>\r\n          </mat-cell>\r\n        </ng-container>\r\n        <ng-container matColumnDef=\"EXPAND\">\r\n          <mat-header-cell *matHeaderCellDef> &nbsp; </mat-header-cell>\r\n          <mat-cell *matCellDef=\"let element\">\r\n            <button mat-icon-button title=\"expand\">\r\n              <mat-icon title=\"expand\" class=\"expand\">keyboard_arrow_down</mat-icon>\r\n            </button>\r\n          </mat-cell>\r\n        </ng-container>\r\n        <mat-header-row *matHeaderRowDef=\"displayedColumns\"></mat-header-row>\r\n        <mat-row *matRowDef=\"let row; columns: displayedColumns;\" matRipple class=\"thread-group-row\" [cdkDetailRow]=\"row\" [cdkDetailRowTpl]=\"tpl\"></mat-row>\r\n      </mat-table>\r\n    </div>\r\n\r\n    <ng-template #tpl let-element>\r\n      <div class=\"scenario-container\" [@detailExpand] fxLayout=\"row\" fxLayoutGap=\"30px\" fxLayout.xs=\"column\" fxLayoutGap.xs=\"0px\">\r\n        <mat-form-field class=\"scenario-name\">\r\n          <input type=\"text\" placeholder=\"Scenaio Name\" matInput [(ngModel)]=\"element.scenario.name\">\r\n        </mat-form-field>\r\n        <mat-form-field class=\"pacing\">\r\n          <input type=\"number\" min=\"0\" placeholder=\"Pacing Time\" matInput [(ngModel)]=\"element.scenario.pacing\">\r\n          <span matSuffix>sec</span>\r\n        </mat-form-field>\r\n      </div>\r\n      <div class=\"mat-row steps\" [@detailExpand] fxLayout=\"column\" fxLayoutGap=\"20px\" [dragula]='\"scenarios\"' [dragulaModel]='element.scenario.steps'>\r\n        <div *ngFor=\"let step of element.scenario.steps; let i = index;\" class=\"step-container\" fxLayout=\"row\" fxLayoutGap=\"10px\"\r\n          fxLayout.xs=\"column\" fxLayoutGap.xs=\"0px\">\r\n          <div fxFlex=\"90\">\r\n            <div class=\"step-from\" fxLayout=\"row\" fxLayoutGap=\"10px\" fxLayoutAlign=\"space-around center\" fxLayoutWrap>\r\n              <mat-form-field class=\"step-name\">\r\n                <input type=\"text\" placeholder=\"Step Name\" matInput [(ngModel)]=\"step.name\">\r\n              </mat-form-field>\r\n              <mat-form-field class=\"step-rt\">\r\n                <input type=\"number\" min=\"0\" placeholder=\"Response Time\" matInput [(ngModel)]=\"step.responseTime\">\r\n                <span matSuffix>sec</span>\r\n              </mat-form-field>\r\n              <mat-form-field class=\"step-tt\">\r\n                <input type=\"number\" min=\"0\" placeholder=\"Think Time\" matInput [(ngModel)]=\"step.thinkTime\">\r\n                <span matSuffix>sec</span>\r\n              </mat-form-field>\r\n            </div>\r\n          </div>\r\n          <div fxFlex=\"10\" fxLayout=\"column\" fxLayoutGap=\"0px\" fxLayoutAlign=\"space-between end\">\r\n            <button mat-raised-button color=\"primary\" (click)=\"onAddStep(element, i)\">\r\n              <mat-icon>add</mat-icon>\r\n            </button>\r\n            <span fxFlex=\"1\"></span>\r\n            <button mat-raised-button color=\"warn\" (click)=\"onRemoveStep(element, i)\">\r\n              <mat-icon>remove</mat-icon>\r\n            </button>\r\n          </div>\r\n        </div>\r\n      </div>\r\n    </ng-template>\r\n\r\n    <mat-action-row fxLayout=\"row\" fxLayoutAlign=\"end center\">\r\n      <button mat-raised-button color=\"primary\" (click)=\"onAddScenario()\">\r\n        <mat-icon>playlist_add</mat-icon> Add Scenario\r\n      </button>\r\n      <span fxFlex=\"1\"></span>\r\n      <button mat-raised-button color=\"warn\" (click)=\"onDeleteScenario()\">\r\n        <mat-icon>delete</mat-icon> Remove Scenario\r\n      </button>\r\n    </mat-action-row>\r\n  </mat-expansion-panel>\r\n</mat-accordion>\r\n<mat-toolbar>\r\n  <mat-toolbar-row fxLayout=\"row\" fxLayoutAlign=\"end center\">\r\n    <mat-chip-list class=\"user-config-desc\">\r\n      <mat-chip color=\"primary\" selected=\"true\" matTooltip=\"Total Virtual Users\">\r\n        <i class=\"material-icons\">people</i> {{totalvUsers}}</mat-chip>\r\n      <mat-chip color=\"primary\" selected=\"true\" matTooltip=\"Total Duration\">\r\n        <i class=\"material-icons\">schedule</i> {{exeDuration}}</mat-chip>\r\n      <mat-chip color=\"primary\" selected=\"true\" matTooltip=\"Total Completed Iterations\">\r\n        <i class=\"material-icons\">repeat</i> {{iteration}}</mat-chip>\r\n    </mat-chip-list>\r\n    <span fxFlex></span>\r\n    <button mat-icon-button (click)=\"onPreference()\">\r\n      <mat-icon>settings</mat-icon>\r\n    </button>\r\n    <button mat-raised-button color=\"primary\" (click)=\"onSimulate()\">\r\n      <mat-icon>playlist_play</mat-icon> Simulate\r\n    </button>\r\n  </mat-toolbar-row>\r\n</mat-toolbar>"
 
 /***/ }),
 
@@ -543,6 +646,7 @@ module.exports = module.exports.toString();
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_ng2_dragula_ng2_dragula___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_4_ng2_dragula_ng2_dragula__);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_5_rxjs_add_observable_of__ = __webpack_require__("../../../../rxjs/_esm5/add/observable/of.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__user_configuration_functions__ = __webpack_require__("../../../../../src/app/activity-graph/user-configuration/user-configuration.functions.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__graph_settings_graph_settings_component__ = __webpack_require__("../../../../../src/app/activity-graph/graph-settings/graph-settings.component.ts");
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -559,26 +663,33 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 
 
 
+
 var UserConfigurationComponent = (function () {
-    function UserConfigurationComponent(dragula, snackBar) {
+    function UserConfigurationComponent(dragula, snackBar, dialog) {
         this.dragula = dragula;
         this.snackBar = snackBar;
+        this.dialog = dialog;
         this.panelOpenState = true;
         this.simulateEvent = new __WEBPACK_IMPORTED_MODULE_0__angular_core__["EventEmitter"]();
         this.displayedColumns = ['select', 'THREADS', 'DELAY', 'START', 'HOLD', 'SHUTDOWN', 'EXPAND'];
         this.dragula.setOptions('Steps-bag', { revertOnSpill: true });
     }
     UserConfigurationComponent.prototype.ngOnInit = function () {
+        this.graphSettings = { isOpenConfigPanel: true, isSimulateSteps: false };
         this.threadGroups = [];
         this.threadGroups.push({ threads: 12, delay: 0, startup: 900, hold: 1800, shutdown: 900, scenario: this.defaultScenario() });
-        this.dataSource = new __WEBPACK_IMPORTED_MODULE_2__angular_material__["D" /* MatTableDataSource */]();
+        this.dataSource = new __WEBPACK_IMPORTED_MODULE_2__angular_material__["G" /* MatTableDataSource */]();
         this.selection = new __WEBPACK_IMPORTED_MODULE_3__angular_cdk_collections__["a" /* SelectionModel */](true, []);
-        this.rePaint();
-        this.simulateEvent.emit(this.transactionDetails);
+        this.onSimulate();
     };
     UserConfigurationComponent.prototype.defaultScenario = function () {
         var transaction = [];
-        transaction.push({ name: 'Step 1', responseTime: 690, thinkTime: 10 });
+        transaction.push({ name: 'Step 1', responseTime: 100, thinkTime: 10 });
+        transaction.push({ name: 'Step 2', responseTime: 100, thinkTime: 10 });
+        transaction.push({ name: 'Step 3', responseTime: 100, thinkTime: 10 });
+        transaction.push({ name: 'Step 4', responseTime: 100, thinkTime: 10 });
+        transaction.push({ name: 'Step 5', responseTime: 100, thinkTime: 10 });
+        transaction.push({ name: 'Step 6', responseTime: 100, thinkTime: 10 });
         var scenario = { name: 'Scenario ' + (this.threadGroups.length + 1), responseTime: 700, pacing: 200, steps: transaction };
         return scenario;
     };
@@ -586,7 +697,7 @@ var UserConfigurationComponent = (function () {
         this.dataSource.data = this.threadGroups;
         this.selection.clear();
         // calculate the total values for display
-        this.transactionDetails = Object(__WEBPACK_IMPORTED_MODULE_6__user_configuration_functions__["a" /* getDataset */])(this.threadGroups);
+        this.transactionDetails = Object(__WEBPACK_IMPORTED_MODULE_6__user_configuration_functions__["a" /* getDataset */])(this.threadGroups, this.graphSettings);
         this.totalvUsers = this.transactionDetails.totalVusers;
         this.exeDuration = this.transactionDetails.totalDuration;
         this.iteration = this.transactionDetails.totalIteration;
@@ -615,9 +726,9 @@ var UserConfigurationComponent = (function () {
         this.snackBar.open('Step removed successfully!', 'Okay', { duration: 10000, });
     };
     UserConfigurationComponent.prototype.onSimulate = function () {
-        this.panelOpenState = false;
+        this.panelOpenState = this.graphSettings.isOpenConfigPanel;
         this.rePaint();
-        this.simulateEvent.emit(this.transactionDetails);
+        this.simulateEvent.emit({ data: this.transactionDetails, settings: this.graphSettings });
     };
     /** Whether the number of selected elements matches the total number of rows. */
     UserConfigurationComponent.prototype.isAllSelected = function () {
@@ -631,6 +742,11 @@ var UserConfigurationComponent = (function () {
         this.isAllSelected() ?
             this.selection.clear() :
             this.dataSource.data.forEach(function (row) { return _this.selection.select(row); });
+    };
+    UserConfigurationComponent.prototype.onPreference = function () {
+        var _this = this;
+        var dialogRef = this.dialog.open(__WEBPACK_IMPORTED_MODULE_7__graph_settings_graph_settings_component__["a" /* GraphSettingsComponent */], { width: '400px', data: this.graphSettings, disableClose: true });
+        dialogRef.afterClosed().subscribe(function (result) { _this.graphSettings = result; });
     };
     __decorate([
         Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Output"])(),
@@ -649,7 +765,7 @@ var UserConfigurationComponent = (function () {
                 ]),
             ],
         }),
-        __metadata("design:paramtypes", [__WEBPACK_IMPORTED_MODULE_4_ng2_dragula_ng2_dragula__["DragulaService"], __WEBPACK_IMPORTED_MODULE_2__angular_material__["z" /* MatSnackBar */]])
+        __metadata("design:paramtypes", [__WEBPACK_IMPORTED_MODULE_4_ng2_dragula_ng2_dragula__["DragulaService"], __WEBPACK_IMPORTED_MODULE_2__angular_material__["C" /* MatSnackBar */], __WEBPACK_IMPORTED_MODULE_2__angular_material__["i" /* MatDialog */]])
     ], UserConfigurationComponent);
     return UserConfigurationComponent;
 }());
@@ -669,10 +785,110 @@ var UserConfigurationComponent = (function () {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_moment_duration_format___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_moment_duration_format__);
 
 
-function getDataset(threads) {
-    var dataset = [];
+function getDataset(threads, settings) {
     var totalUser = getTotalUsers(threads);
     var totalDuration = getTotalDuration(threads);
+    var transactionActivity = getTransactionActivity(threads);
+    if (settings.isSimulateSteps) {
+        var stepActivity = getStepActivity(threads);
+        return {
+            totalVusers: totalUser, totalDuration: totalDuration.displayString,
+            totalIteration: transactionActivity.totalIteration, activites: transactionActivity.activities,
+            setpActivities: stepActivity.activities
+        };
+    }
+    else {
+        return {
+            totalVusers: totalUser, totalDuration: totalDuration.displayString,
+            totalIteration: transactionActivity.totalIteration, activites: transactionActivity.activities
+        };
+    }
+}
+function getStepActivity(threads) {
+    var dataset = [];
+    var rampup = 0;
+    var rampdown = 0;
+    var currentUser = 1;
+    var runDuration = 0;
+    var init = 0;
+    var activeDuration = 0;
+    var runTracker;
+    var momentToday = __WEBPACK_IMPORTED_MODULE_0_moment__().startOf('day');
+    threads.forEach(function (obj, key) {
+        var activityDuration = getResponseTime(obj.scenario.steps);
+        rampup = obj.startup / obj.threads > 1 ? obj.startup / obj.threads : 1;
+        rampdown = obj.shutdown / obj.threads > 1 ? obj.shutdown / obj.threads : 1;
+        for (var ct = 0; ct < obj.threads; ct++) {
+            var item = { measure: 'VU ' + currentUser, data: [] };
+            init = runDuration = obj.delay + (rampup * ct);
+            activeDuration = obj.hold + (obj.startup - (rampup * ct)) + (obj.shutdown - (rampdown * ct));
+            runTracker = momentToday.clone().add(runDuration, 's');
+            while (true) {
+                for (var _i = 0, _a = obj.scenario.steps; _i < _a.length; _i++) {
+                    var step = _a[_i];
+                    // add step activity
+                    var activity = [];
+                    activity.push(runTracker.format('YYYY-MM-DD HH:mm:ss'));
+                    activity.push(step.name);
+                    if ((runDuration + step.responseTime) > (activeDuration + init)) {
+                        runTracker.add((activeDuration + init) - runDuration, 's');
+                    }
+                    else {
+                        runTracker.add(step.responseTime, 's');
+                    }
+                    runDuration += step.responseTime;
+                    activity.push(runTracker.format('YYYY-MM-DD HH:mm:ss'));
+                    item.data.push(activity);
+                    if (runDuration > (activeDuration + init)) {
+                        break;
+                    }
+                    // add pacing
+                    var thinkTime = [];
+                    thinkTime.push(runTracker.format('YYYY-MM-DD HH:mm:ss'));
+                    thinkTime.push('Think Time');
+                    if ((runDuration + step.thinkTime) > (activeDuration + init)) {
+                        runTracker.add((activeDuration + init) - runDuration, 's');
+                    }
+                    else {
+                        runTracker.add(step.thinkTime, 's');
+                    }
+                    runDuration += step.thinkTime;
+                    thinkTime.push(runTracker.format('YYYY-MM-DD HH:mm:ss'));
+                    item.data.push(thinkTime);
+                    if (runDuration > (activeDuration + init)) {
+                        break;
+                    }
+                }
+                if (runDuration > (activeDuration + init)) {
+                    break;
+                }
+                // add pacing
+                var pause = [];
+                pause.push(runTracker.format('YYYY-MM-DD HH:mm:ss'));
+                pause.push('Pacing');
+                if ((runDuration + obj.scenario.pacing) > (activeDuration + init)) {
+                    runTracker.add((activeDuration + init) - runDuration, 's');
+                }
+                else {
+                    runTracker.add(obj.scenario.pacing, 's');
+                }
+                runDuration += obj.scenario.pacing;
+                pause.push(runTracker.format('YYYY-MM-DD HH:mm:ss'));
+                item.data.push(pause);
+                if (runDuration > (activeDuration + init)) {
+                    break;
+                }
+            }
+            currentUser++;
+            dataset.push(item);
+        }
+    });
+    dataset.reverse();
+    // console.log(dataset);
+    return { activities: dataset };
+}
+function getTransactionActivity(threads) {
+    var dataset = [];
     var totalRecords = 0;
     var rampup = 0;
     var rampdown = 0;
@@ -689,10 +905,8 @@ function getDataset(threads) {
         for (var ct = 0; ct < obj.threads; ct++) {
             var item = { measure: 'VU ' + currentUser, data: [] };
             init = runDuration = obj.delay + (rampup * ct);
-            // activeDuration = totalDuration - (rampdown * ct + rampup*ct);
             activeDuration = obj.hold + (obj.startup - (rampup * ct)) + (obj.shutdown - (rampdown * ct));
             runTracker = momentToday.clone().add(runDuration, 's');
-            // console.log(currentUser + ',' + init + ',' + activeDuration);
             while (true) {
                 // add activity
                 var activity = [];
@@ -734,7 +948,7 @@ function getDataset(threads) {
     });
     dataset.reverse();
     // console.log(dataset);
-    return { totalVusers: totalUser, totalDuration: totalDuration.displayString, totalIteration: totalRecords, activites: dataset };
+    return { activities: dataset, totalIteration: totalRecords };
 }
 function getTotalUsers(threads) {
     var totalvUsers = 0;
@@ -824,20 +1038,22 @@ var AppComponent = (function () {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_core__ = __webpack_require__("../../../core/esm5/core.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__app_component__ = __webpack_require__("../../../../../src/app/app.component.ts");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_d3_ng2_service__ = __webpack_require__("../../../../d3-ng2-service/index.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_ngx_electron__ = __webpack_require__("../../../../ngx-electron/index.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__shared_shared_module__ = __webpack_require__("../../../../../src/app/shared/shared.module.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__activity_graph_user_configuration_user_configuration_component__ = __webpack_require__("../../../../../src/app/activity-graph/user-configuration/user-configuration.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__activity_graph_activity_graph_component__ = __webpack_require__("../../../../../src/app/activity-graph/activity-graph.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__d3_demo_drag_zoom_2_component__ = __webpack_require__("../../../../../src/app/d3-demo/drag-zoom-2.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__shared_cdk_detail_row_directive__ = __webpack_require__("../../../../../src/app/shared/cdk-detail-row.directive.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10_ng2_dragula_ng2_dragula__ = __webpack_require__("../../../../ng2-dragula/ng2-dragula.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10_ng2_dragula_ng2_dragula___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_10_ng2_dragula_ng2_dragula__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_ng2_dragula_ng2_dragula__ = __webpack_require__("../../../../ng2-dragula/ng2-dragula.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_ng2_dragula_ng2_dragula___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_4_ng2_dragula_ng2_dragula__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5_ngx_electron__ = __webpack_require__("../../../../ngx-electron/index.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__shared_shared_module__ = __webpack_require__("../../../../../src/app/shared/shared.module.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__activity_graph_user_configuration_user_configuration_component__ = __webpack_require__("../../../../../src/app/activity-graph/user-configuration/user-configuration.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__activity_graph_activity_graph_component__ = __webpack_require__("../../../../../src/app/activity-graph/activity-graph.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__d3_demo_drag_zoom_2_component__ = __webpack_require__("../../../../../src/app/d3-demo/drag-zoom-2.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__shared_cdk_detail_row_directive__ = __webpack_require__("../../../../../src/app/shared/cdk-detail-row.directive.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__activity_graph_graph_settings_graph_settings_component__ = __webpack_require__("../../../../../src/app/activity-graph/graph-settings/graph-settings.component.ts");
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+
 
 
 
@@ -856,17 +1072,19 @@ var AppModule = (function () {
         Object(__WEBPACK_IMPORTED_MODULE_1__angular_core__["NgModule"])({
             declarations: [
                 __WEBPACK_IMPORTED_MODULE_2__app_component__["a" /* AppComponent */],
-                __WEBPACK_IMPORTED_MODULE_6__activity_graph_user_configuration_user_configuration_component__["a" /* UserConfigurationComponent */],
-                __WEBPACK_IMPORTED_MODULE_7__activity_graph_activity_graph_component__["a" /* ActivityGraphComponent */],
-                __WEBPACK_IMPORTED_MODULE_8__d3_demo_drag_zoom_2_component__["a" /* DragZoom2Component */],
-                __WEBPACK_IMPORTED_MODULE_9__shared_cdk_detail_row_directive__["a" /* CdkDetailRowDirective */]
+                __WEBPACK_IMPORTED_MODULE_7__activity_graph_user_configuration_user_configuration_component__["a" /* UserConfigurationComponent */],
+                __WEBPACK_IMPORTED_MODULE_8__activity_graph_activity_graph_component__["a" /* ActivityGraphComponent */],
+                __WEBPACK_IMPORTED_MODULE_9__d3_demo_drag_zoom_2_component__["a" /* DragZoom2Component */],
+                __WEBPACK_IMPORTED_MODULE_10__shared_cdk_detail_row_directive__["a" /* CdkDetailRowDirective */],
+                __WEBPACK_IMPORTED_MODULE_11__activity_graph_graph_settings_graph_settings_component__["a" /* GraphSettingsComponent */]
             ],
             imports: [
                 __WEBPACK_IMPORTED_MODULE_0__angular_platform_browser__["a" /* BrowserModule */],
-                __WEBPACK_IMPORTED_MODULE_5__shared_shared_module__["a" /* SharedModule */],
-                __WEBPACK_IMPORTED_MODULE_10_ng2_dragula_ng2_dragula__["DragulaModule"],
-                __WEBPACK_IMPORTED_MODULE_4_ngx_electron__["a" /* NgxElectronModule */]
+                __WEBPACK_IMPORTED_MODULE_6__shared_shared_module__["a" /* SharedModule */],
+                __WEBPACK_IMPORTED_MODULE_4_ng2_dragula_ng2_dragula__["DragulaModule"],
+                __WEBPACK_IMPORTED_MODULE_5_ngx_electron__["a" /* NgxElectronModule */]
             ],
+            entryComponents: [__WEBPACK_IMPORTED_MODULE_11__activity_graph_graph_settings_graph_settings_component__["a" /* GraphSettingsComponent */]],
             providers: [__WEBPACK_IMPORTED_MODULE_3_d3_ng2_service__["a" /* D3Service */]],
             bootstrap: [__WEBPACK_IMPORTED_MODULE_2__app_component__["a" /* AppComponent */]]
         })
@@ -1138,73 +1356,73 @@ var MaterialModule = (function () {
     MaterialModule = __decorate([
         Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
             imports: [
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["a" /* MatAutocompleteModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["b" /* MatButtonModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["c" /* MatButtonToggleModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["d" /* MatCardModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["e" /* MatCheckboxModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["f" /* MatChipsModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["g" /* MatDatepickerModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["h" /* MatDialogModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["i" /* MatExpansionModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["k" /* MatGridListModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["l" /* MatIconModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["m" /* MatInputModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["n" /* MatListModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["o" /* MatMenuModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["p" /* MatNativeDateModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["q" /* MatPaginatorModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["r" /* MatProgressBarModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["s" /* MatProgressSpinnerModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["t" /* MatRadioModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["u" /* MatRippleModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["v" /* MatSelectModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["w" /* MatSidenavModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["y" /* MatSliderModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["x" /* MatSlideToggleModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["A" /* MatSnackBarModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["B" /* MatSortModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["E" /* MatTableModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["F" /* MatTabsModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["G" /* MatToolbarModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["H" /* MatTooltipModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["C" /* MatStepperModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["j" /* MatFormFieldModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["b" /* MatAutocompleteModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["c" /* MatButtonModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["d" /* MatButtonToggleModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["e" /* MatCardModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["f" /* MatCheckboxModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["g" /* MatChipsModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["h" /* MatDatepickerModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["j" /* MatDialogModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["l" /* MatExpansionModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["n" /* MatGridListModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["o" /* MatIconModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["p" /* MatInputModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["q" /* MatListModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["r" /* MatMenuModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["s" /* MatNativeDateModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["t" /* MatPaginatorModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["u" /* MatProgressBarModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["v" /* MatProgressSpinnerModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["w" /* MatRadioModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["x" /* MatRippleModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["y" /* MatSelectModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["z" /* MatSidenavModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["B" /* MatSliderModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["A" /* MatSlideToggleModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["D" /* MatSnackBarModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["E" /* MatSortModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["H" /* MatTableModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["I" /* MatTabsModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["J" /* MatToolbarModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["K" /* MatTooltipModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["F" /* MatStepperModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["m" /* MatFormFieldModule */],
                 __WEBPACK_IMPORTED_MODULE_1__angular_cdk_table__["m" /* CdkTableModule */]
             ],
             exports: [
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["a" /* MatAutocompleteModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["b" /* MatButtonModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["c" /* MatButtonToggleModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["d" /* MatCardModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["e" /* MatCheckboxModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["f" /* MatChipsModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["g" /* MatDatepickerModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["h" /* MatDialogModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["i" /* MatExpansionModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["k" /* MatGridListModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["l" /* MatIconModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["m" /* MatInputModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["n" /* MatListModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["o" /* MatMenuModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["p" /* MatNativeDateModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["q" /* MatPaginatorModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["r" /* MatProgressBarModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["s" /* MatProgressSpinnerModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["t" /* MatRadioModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["u" /* MatRippleModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["v" /* MatSelectModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["w" /* MatSidenavModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["y" /* MatSliderModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["x" /* MatSlideToggleModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["A" /* MatSnackBarModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["B" /* MatSortModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["E" /* MatTableModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["F" /* MatTabsModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["G" /* MatToolbarModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["H" /* MatTooltipModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["C" /* MatStepperModule */],
-                __WEBPACK_IMPORTED_MODULE_2__angular_material__["j" /* MatFormFieldModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["b" /* MatAutocompleteModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["c" /* MatButtonModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["d" /* MatButtonToggleModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["e" /* MatCardModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["f" /* MatCheckboxModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["g" /* MatChipsModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["h" /* MatDatepickerModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["j" /* MatDialogModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["l" /* MatExpansionModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["n" /* MatGridListModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["o" /* MatIconModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["p" /* MatInputModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["q" /* MatListModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["r" /* MatMenuModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["s" /* MatNativeDateModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["t" /* MatPaginatorModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["u" /* MatProgressBarModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["v" /* MatProgressSpinnerModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["w" /* MatRadioModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["x" /* MatRippleModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["y" /* MatSelectModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["z" /* MatSidenavModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["B" /* MatSliderModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["A" /* MatSlideToggleModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["D" /* MatSnackBarModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["E" /* MatSortModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["H" /* MatTableModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["I" /* MatTabsModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["J" /* MatToolbarModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["K" /* MatTooltipModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["F" /* MatStepperModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["m" /* MatFormFieldModule */],
                 __WEBPACK_IMPORTED_MODULE_1__angular_cdk_table__["m" /* CdkTableModule */]
             ]
         })
